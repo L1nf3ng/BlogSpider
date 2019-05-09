@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 """
-@author: 如梦地迷恋你一场
+@author: 如梦般迷恋你一场
 @file: MorningPaper.py
 @time: 2019-5-9 9:59
 @desc: 从 先知、安全客、嘶吼、freebuf 四大平台上爬取当日的新文章
@@ -14,6 +14,7 @@
 # 写Xpath最简单的办法是用Chrome浏览器的右键功能^_^
 
 
+import re
 import requests
 import datetime
 from lxml import etree
@@ -32,7 +33,7 @@ class Article:
         self._href= data[1]
         self._author=  data[2]
         self._type= data[3]
-        self._date= data[4]
+        self._date= self.handle_date(data[4])
         self._origin = data[5]
         if not self._href.startswith('https://') and not self._href.startswith('http://'):
             self._href = self._origin + self._href
@@ -42,6 +43,18 @@ class Article:
         return """Post informaiton:\nTitle:{}\n Author:{} Type:{} Date:{} Link: {}\n""".\
             format(self._title,self._author,self._type,self._date,self._href)
 
+    @property
+    def pub_date(self):
+        return self._date
+
+    # in this func, we adjust the date-time into '%y-%m-%d' form
+    def handle_date(self,date):
+        ymd = re.search('(\d+)[-年](\d+)[-月](\d+)日?',date)
+        # 非常规格式，全部转成当天
+        if ymd is None:
+            return datetime.datetime.now().strftime('%Y-%m-%d')
+        year,month,day = ymd.groups()
+        return year+'-'+month+'-'+day
 
 # 目标类，记录目标的爬取指标：链接、解析时的xpath语法
 # Target中的表达式数组分别代表（post位置，标题位置、链接位置、作者位置、分类位置、日期位置）
@@ -68,6 +81,17 @@ class Target:
         return self._bad_expr
 
 
+'''
+   print("---------------")
+
+   if len(Today_Articles)==0:
+       print("今天还没更新，半小时后再来")
+   else:
+       for element in Today_Articles:
+           print(element)
+'''
+
+
 # 收集器类，负责测试连接、请求、解析文档、处理异常等
 class Collector:
     def __init__(self, target, proxy= False):
@@ -81,7 +105,22 @@ class Collector:
         self._set_proxy = proxy
         # default charset is utf-8
         self._charset = 'utf-8'
+        # the time zone which we acutually need
+        self._time_zone = self.handle_time()
         self._posts = []
+
+    def handle_time(self):
+        scope = []
+        now = datetime.datetime.now()
+        scope.append(now.strftime("%Y-%m-%d"))
+        week = now.strftime("%a")
+        # 如果今天是周一，则顺便爬取上周末的文章
+        if week == "Mon":
+            last = now - datetime.timedelta(days=1)
+            scope.append(last.strftime("%Y-%m-%d"))
+            last = now - datetime.timedelta(days=2)
+            scope.append(last.strftime("%Y-%m-%d"))
+        return scope
 
     def get_blog(self):
         if self._set_proxy:
@@ -116,7 +155,10 @@ class Collector:
                 print(ext,': post number {}'.format(debug_num))
             debug_num += 1
             data.append(self._target.url)
-            self._posts.append(Article(data))
+            article = Article(data)
+            # we only add the post in the time zone.
+            if article.pub_date in self._time_zone:
+                self._posts.append(Article(data))
 
     @property
     def posts(self):
@@ -171,33 +213,3 @@ if __name__=='__main__':
     cl.parse_blog(blog)
     for p in cl.posts:
         print(p)
-
-    '''
-    target = "https://xz.aliyun.com"
-    scope = []
-    now = datetime.datetime.now()
-    week = now.strftime("%a")
-    scope.append(now.strftime("%Y-%m-%d"))
-    # 如果今天是周一，则顺便爬取上周末的文章
-    if week == "Mon":
-        last =  now - datetime.timedelta(days=1)
-        scope.append(last.strftime("%Y-%m-%d"))
-        last =  now - datetime.timedelta(days=2)
-        scope.append(last.strftime("%Y-%m-%d"))
-
-    print("---------------")
-    
-    # 1st expression, get the post lists
-    articles = docs.xpath("//td")
-    
-    # 2nd expression, get detailed information by class
-    for day in scope:
-        if day == date:
-            Today_Articles.append(Aritcle(title,href,author,type,date))
-    
-    if len(Today_Articles)==0:
-        print("今天还没更新，半小时后再来")
-    else:
-        for element in Today_Articles:
-            print(element)
-    '''
