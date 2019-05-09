@@ -19,31 +19,38 @@ import datetime
 from lxml import etree
 
 
-# 以下是一些会用到的结构
+# 首先是有用的处理函数
 
+
+
+# 以下是一些会用到的结构
 # 文章类，记录标题、链接、作者、分类、发布日期等重要信息
-class Aritcle:
-    def __init__(self,title, link, author, category, date):
-        self._title= title
-        self._href= link
-        self._author= author
-        self._type= category
-        self._date= date
+class Article:
+    # python的特性：只能定义一个构造函数，后期可以用*args的长度改造一下
+    # 构造函数改为列表初始化：[title, link, author, category, date, origin]
+    def __init__(self, data):
+        self._title= data[0]
+        self._href= data[1]
+        self._author=  data[2]
+        self._type= data[3]
+        self._date= data[4]
+        self._origin = data[5]
+        if not self._href.startswith('https://') and not self._href.startswith('http://'):
+            self._href = self._origin + self._href
 
     # 输出函数，要么重载，要么自写。输出格式到文件，按模板形式输出为html、csv等
     def __repr__(self):
-        return """\
-            Post informaiton:
-            Title:{} 
-            Author:{} Type:{} Date:{} Link: {}
-        """.format(self._title,self._author,self._type,self._date,self._href)
+        return """Post informaiton:\nTitle:{}\n Author:{} Type:{} Date:{} Link: {}\n""".\
+            format(self._title,self._author,self._type,self._date,self._href)
 
 
 # 目标类，记录目标的爬取指标：链接、解析时的xpath语法
+# Target中的表达式数组分别代表（post位置，标题位置、链接位置、作者位置、分类位置、日期位置）
 class Target:
     def __init__(self, url, xpath):
         self._url = url
-        self._expr = xpath
+        self._expr = []
+        self._expr.extend(xpath)
 
     @property
     def url(self):
@@ -67,6 +74,7 @@ class Collector:
         self._set_proxy = proxy
         # default charset is utf-8
         self._charset = 'utf-8'
+        self._posts = []
 
     def get_blog(self):
         if self._set_proxy:
@@ -76,54 +84,83 @@ class Collector:
         if reply.status_code != 200:
             print('Cannot connect {} just now. Try it later or check the network...'.format(self._target.url))
             return None
-        
+        return reply.content.decode(self._charset)
+
+    def parse_blog(self, blog):
+        p = etree.HTMLParser()
+        doc = etree.fromstring(blog, p)
+#        doc = etree.parse(blog, p)
+        # 1st expr determines the articles elements
+        posts = eval('doc.'+self._target.expr[0])
+        # left expressions determine posts information
+        for post in posts:
+            data = []
+            for od in range(1, 6, 1):
+                data.append(eval('post.' + self._target.expr[od]).strip())
+            data.append(self._target.url)
+            self._posts.append(Article(data))
+
+    @property
+    def posts(self):
+        return self._posts
 
 
-target = "https://xz.aliyun.com"
-scope = []
-now = datetime.datetime.now()
-week = now.strftime("%a")
-scope.append(now.strftime("%Y-%m-%d"))
-# 如果今天是周一，则顺便爬取上周末的文章
-if week == "Mon":
-    last =  now - datetime.timedelta(days=1)
-    scope.append(last.strftime("%Y-%m-%d"))
-    last =  now - datetime.timedelta(days=2)
-    scope.append(last.strftime("%Y-%m-%d"))
+if __name__=='__main__':
+    # test with xz.aliyun.com
+    # 迫于html文档的复杂性，这里的检测原语全部带上xpath，送入后用eval执行
+    # expr顺序对应意义：
+    #               post位置
+    #               标题位置
+    #               链接位置
+    #               作者位置
+    #               分类位置
+    #               日期位置
+    aliyun = Target('https://xz.aliyun.com', ["xpath('//td')",
+                                         "xpath('./p[1]/a[@class=\\'topic-title\\']')[0].text",
+                                         "xpath('./p[1]/a[@class=\\'topic-title\\']/@href')[0]",
+                                         "xpath('./p[2]/a[1]')[0].text",
+                                         "xpath('./p[2]/a[2]')[0].text",
+                                         "xpath('./p[2]/text()')[2]"])
+    anquanke = Target('https://www.anquanke.com', ["xpath('//td')",
+                                         "xpath('./p[1]/a[@class=\\'topic-title\\']')[0].text",
+                                         "xpath('./p[1]/a[@class=\\'topic-title\\']/@href')[0]",
+                                         "xpath('./p[2]/a[1]')[0].text",
+                                         "xpath('./p[2]/a[2]')[0].text",
+                                         "xpath('./p[2]/text()')[2]"])
+    cl = Collector(aliyun)
+    blog = cl.get_blog()
+    if blog == None:
+        print('the target {} currently not visited!'.format(aliyun.url))
+    cl.parse_blog(blog)
+    for p in  cl.posts:
+        print(p)
 
+    '''
+    target = "https://xz.aliyun.com"
+    scope = []
+    now = datetime.datetime.now()
+    week = now.strftime("%a")
+    scope.append(now.strftime("%Y-%m-%d"))
+    # 如果今天是周一，则顺便爬取上周末的文章
+    if week == "Mon":
+        last =  now - datetime.timedelta(days=1)
+        scope.append(last.strftime("%Y-%m-%d"))
+        last =  now - datetime.timedelta(days=2)
+        scope.append(last.strftime("%Y-%m-%d"))
 
-repl = requests.get(target, headers=header, verify=False)
-
-print(repl.status_code)
-print("---------------")
-
-docs= etree.HTML(repl.content.decode(repl.encoding))
-
-# some xpath expression to locate your elements
-
-
-# 1st expression, get the post lists
-articles = docs.xpath("//td")
-Today_Articles = list()
-
-# 2nd expression, get detailed information by class
-for element in articles:
-    title = element.xpath("./p[1]/a[@class='topic-title']")[0].text
-    title = title.strip('\r\n').strip()
-    href = target + element.xpath("./p[1]/a[@class='topic-title']/@href")[0]
-    author = element.xpath("./p[2]/a[1]")[0].text
-    type = element.xpath("./p[2]/a[2]")[0].text
-    date = element.xpath("./p[2]/text()")[2]
-    date = date.strip('\r').strip('\n').strip(' /').strip()
-
-    # very simple logics
+    print("---------------")
+    
+    # 1st expression, get the post lists
+    articles = docs.xpath("//td")
+    
+    # 2nd expression, get detailed information by class
     for day in scope:
         if day == date:
             Today_Articles.append(Aritcle(title,href,author,type,date))
-
-if len(Today_Articles)==0:
-    print("今天还没更新，半小时后再来")
-else:
-    for element in Today_Articles:
-        print(element)
-
+    
+    if len(Today_Articles)==0:
+        print("今天还没更新，半小时后再来")
+    else:
+        for element in Today_Articles:
+            print(element)
+    '''
