@@ -81,17 +81,6 @@ class Target:
         return self._bad_expr
 
 
-'''
-   print("---------------")
-
-   if len(Today_Articles)==0:
-       print("今天还没更新，半小时后再来")
-   else:
-       for element in Today_Articles:
-           print(element)
-'''
-
-
 # 收集器类，负责测试连接、请求、解析文档、处理异常等
 class Collector:
     def __init__(self, target, proxy= False):
@@ -206,10 +195,23 @@ if __name__=='__main__':
                                          "xpath('.//div[@class=\\'new_img\\']/span')[0].text",
                                          "xpath('.//div[@class=\\'avatar_box newtime\\']/span')[0].text"])
 
-    cl = Collector(_4hou)
-    blog = cl.get_blog()
-    if blog is None:
-        print('the target {} currently not visited!'.format(_4hou.url))
-    cl.parse_blog(blog)
-    for p in cl.posts:
-        print(p)
+    # conduct the tasks in  sequence
+    tasks = [aliyun, anquanke, freebuf, _4hou]
+    for task in tasks:
+        cl = Collector(task)
+        blog = cl.get_blog()
+        if blog is None:
+            print('the target {} currently not visited!'.format(task.url))
+        print("\n---------- the posts from {} -----------\n".format(task.url.upper()))
+        cl.parse_blog(blog)
+        for p in cl.posts:
+            print(p)
+
+'''
+   if len(Today_Articles)==0:
+       print("今天还没更新，半小时后再来")
+   else:
+       for element in Today_Articles:
+           print(element)
+'''
+
