@@ -19,14 +19,14 @@ for individual in urls:
     url = individual._blog_url
     res = re.match('(.*(blog|post|blob|research|article|report|intelligence)[^/]*/)',str(url),re.I)
     if res != None:
-        print res.group(1)
+        print(res.group(1))
         individual._source_path = res.group(1)
     else:
         notFound.append(url)
         individual._source_path = 'Not Found'
-print '\n\n'
+print('\n\n')
 for x  in  notFound:
-    print 'NOT FOUND: '+x
+    print('NOT FOUND: '+x)
 
 session.commit()
 session.close()

@@ -1,7 +1,7 @@
 # encoding: utf-8
 #
 
-from urlparse import urlparse
+from urllib.parse import urlparse
 from datetime import datetime
 from sqlalchemy import String,Column,Integer,DateTime
 from sqlalchemy.ext.declarative import declarative_base
@@ -40,7 +40,7 @@ class sourceUrl(Base):
             self._blog_url = urlstring
             self._url = urlparse(urlstring).netloc
         else:
-            print '[-] Error Url: '+urlstring
+            print('[-] Error Url: '+urlstring)
             self._url = ''
             raise UrlFormatError
 

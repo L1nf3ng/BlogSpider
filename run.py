@@ -38,7 +38,7 @@ def grab_first_page():
 
 
 # METHOD 2
-from urllib import urlopen
+from urllib.request import urlopen
 from localType import Author,sourceUrl,createTable
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import create_engine
@@ -58,20 +58,20 @@ Session = sessionmaker(bind=engine)
 ####################
 def authorPageSearch(pageNo, writer):
     global URLS
-    print '\r\n\r\n'+str(writer)
-    for pno in xrange(1, pageNo+1):
+    print('\r\n\r\n'+str(writer))
+    for pno in range(1, pageNo+1):
         buff = urlopen(writer.getAPI(pno)).read()
         block = json.loads(buff)['data']
         for post in block:
             type,url,title,date = post['type'],post['url'],post['title'],post['date']
             if type == u'origin' and url == u'':
-                print '原创文章： {}'.format(title.encode('utf8'))
+                print('原创文章： {}'.format(title.encode('utf8')))
             elif type == u'translate' and url != u'':
                 sUrl = sourceUrl(url)
                 URLS.add(sUrl)
-                print '翻译文章：发布时间：{} {}'.format(date.encode('utf8'),url.encode('utf8'))
+                print('翻译文章：发布时间：{} {}'.format(date.encode('utf8'),url.encode('utf8')))
             else:
-                print '未分类文章： {}'.format(title.encode('utf8'))
+                print('未分类文章： {}'.format(title.encode('utf8')))
         next = json.loads(buff)['next']
         if next is u'':
             break
@@ -81,7 +81,7 @@ def authorPageSearch(pageNo, writer):
 ####################
 def mainPageSearch(pageNo):
     global WRITERS
-    for pno in xrange(1,pageNo+1):
+    for pno in range(1,pageNo+1):
         buffer = urlopen(_360api+str(pno)).read()
         content = json.loads(buffer)['data']
         status = u'success' if json.loads(buffer)['success'] is True else u'fail'
