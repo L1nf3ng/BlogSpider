@@ -150,8 +150,7 @@ class Collector:
         return reply.content.decode(self._charset)
 
     def parse_blog(self, blog):
-        p = etree.HTMLParser()
-        doc = etree.fromstring(blog, p)
+        doc = etree.fromstring(blog, etree.HTMLParser())
 #        doc = etree.parse(blog, p)
         # last expr defines the rule to delete useless tags
         if self._target.bad_expr!=None:
