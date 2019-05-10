@@ -10,7 +10,7 @@
 * 添加新目标时以xpath表达式作为特征库
 * 输出形式为html，方便点击访问
 * 下一步将引入协程机制，加快爬取效率
-    
+  
 ### 依赖库
 
 暂时用到的第三方模块有requests、lxml、jinja2
@@ -19,8 +19,8 @@
 
 如果要添加目标，可以照以下格式编写xpath语句：
 
-![语法图片](https://imgchr.com/i/ERfWN9)
-   
+![语法图片](https://s2.ax1x.com/2019/05/10/ERfWN9.png)
+
 运行效果如下：
-    
-![演示视频](https://imgchr.com/i/ER2c0H)
+
+![演示视频](https://s2.ax1x.com/2019/05/10/ER2c0H.gif)
