@@ -15,13 +15,19 @@
 
 
 import re
-import requests
+import json
 import datetime
+
+# the 3rd modules
+import requests
 from lxml import etree
+from jinja2 import Environment,FileSystemLoader
 
 
 # 首先是有用的处理函数
 
+def today():
+    return datetime.datetime.now().strftime('%Y-%m-%d')
 
 # 以下是一些会用到的结构
 # 文章类，记录标题、链接、作者、分类、发布日期等重要信息
@@ -38,13 +44,24 @@ class Article:
         if not self._href.startswith('https://') and not self._href.startswith('http://'):
             self._href = self._origin + self._href
 
-    # 输出函数，要么重载，要么自写。输出格式到文件，按模板形式输出为html、csv等
-    def __repr__(self):
-        return """Post informaiton:\nTitle:{}\n Author:{} Type:{} Date:{} Link: {}\n""".\
-            format(self._title,self._author,self._type,self._date,self._href)
+    @property
+    def title(self):
+        return self._title
 
     @property
-    def pub_date(self):
+    def author(self):
+        return self._author
+
+    @property
+    def tag(self):
+        return self._type
+
+    @property
+    def link(self):
+        return self._href
+
+    @property
+    def date(self):
         return self._date
 
     # in this func, we adjust the date-time into '%y-%m-%d' form
@@ -52,9 +69,20 @@ class Article:
         ymd = re.search('(\d+)[-年](\d+)[-月](\d+)日?',date)
         # 非常规格式，全部转成当天
         if ymd is None:
-            return datetime.datetime.now().strftime('%Y-%m-%d')
+            return today()
         year,month,day = ymd.groups()
         return year+'-'+month+'-'+day
+
+    # 输出函数，要么重载，要么自写。输出格式到文件，按模板形式输出为html、csv等
+    def __repr__(self):
+        return """Post informaiton:\nTitle:{}\n Author:{} Type:{} Date:{} Link: {}\n""".\
+            format(self._title,self._author,self._type,self._date,self._href)
+
+    # 将元数据化为字典，再转成json字符串，方便与其他服务交互
+    # 暂时未用到
+    def jsonify(self):
+        input= {'title':self.title, 'author':self.author, 'tag':self.tag, 'link':self.link, 'date':self.date}
+        return json.dumps(input)
 
 # 目标类，记录目标的爬取指标：链接、解析时的xpath语法
 # Target中的表达式数组分别代表（post位置，标题位置、链接位置、作者位置、分类位置、日期位置）
@@ -146,7 +174,7 @@ class Collector:
             data.append(self._target.url)
             article = Article(data)
             # we only add the post in the time zone.
-            if article.pub_date in self._time_zone:
+            if article.date in self._time_zone:
                 self._posts.append(Article(data))
 
     @property
@@ -197,21 +225,22 @@ if __name__=='__main__':
 
     # conduct the tasks in  sequence
     tasks = [aliyun, anquanke, freebuf, _4hou]
+    # to display in a jinja2 templates, we need to form a dictionary
+    # to_show ={ Origin: xxx, Articles: [Article1, Article2,...], Len: len(Articles) } then add it into a list
+    template_data = []
+    # initialize a jinja template
+    env = Environment(loader= FileSystemLoader('./templates'))
+    template = env.get_template('report.j2')
     for task in tasks:
         cl = Collector(task)
         blog = cl.get_blog()
         if blog is None:
             print('the target {} currently not visited!'.format(task.url))
-        print("\n---------- the posts from {} -----------\n".format(task.url.upper()))
+        print("---------- the posts from {} -----------".format(task.url.upper()))
         cl.parse_blog(blog)
-        for p in cl.posts:
-            print(p)
-
-'''
-   if len(Today_Articles)==0:
-       print("今天还没更新，半小时后再来")
-   else:
-       for element in Today_Articles:
-           print(element)
-'''
+        to_show={'Origin':task.url, 'Articles':cl.posts, 'Len':len(cl.posts)}
+        template_data.append(to_show)
+    nowaday = today()
+    with open('{}_breakfast.html'.format(nowaday),'w',encoding='utf-8') as output:
+        output.write( template.render(results= template_data, date= nowaday))
 
