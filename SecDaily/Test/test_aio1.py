@@ -20,7 +20,7 @@ async def sendReq(target):
     return reply
 
 async def controller(target):
-    num = 5
+    num = 4
     while num>0:
         print("Let's start {} requet for {}".format(num,target))
         await sendReq(target)
@@ -36,7 +36,6 @@ class Tester(unittest.TestCase):
         tasks = [controller(targets[0]), controller(targets[1])]
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
-
 
 if __name__== '__main__':
 
