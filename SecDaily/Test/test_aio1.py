@@ -11,13 +11,18 @@
 # 任务是分别请求4hou、安全客5次。利用协程实现异步
 
 import requests
+import functools
 import asyncio
 import unittest
 
 async def sendReq(target):
     header = {'User-Agent':'Mozilla/5.0 Chrome/72.0.3626.121 Safari/537.36'}
-    reply =  requests.get(target, headers= header)
-    return reply
+#    the older method
+#    reply =  requests.get(target, headers= header)
+#    the newer method
+    future = asyncio.get_event_loop().\
+        run_in_executor(None, functools.partial(requests.get, target, headers= header))
+    return await future
 
 async def controller(target):
     num = 4

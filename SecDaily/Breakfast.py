@@ -16,10 +16,12 @@
 
 import re
 import json
+import asyncio
 import datetime
 
 # the 3rd modules
-import requests
+import aiohttp
+# import requests
 from lxml import etree
 from jinja2 import Environment,FileSystemLoader
 
@@ -117,7 +119,7 @@ class Collector:
 #                          "Accept":"text/html,application/xhtml+xml,application/xml",
 #                          "Accept-Encoding": "gzip, deflate, br",
 #                          "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8" }
-        self._proxy = {"https":"http://127.0.0.1:8080"}
+        self._proxy = "http://127.0.0.1:8080"
         # set_proxy label shows whether turn on the proxy
         self._set_proxy = proxy
         # default charset is utf-8
@@ -139,15 +141,18 @@ class Collector:
             scope.append(last.strftime("%Y-%m-%d"))
         return scope
 
-    def get_blog(self):
-        if self._set_proxy:
-            reply = requests.get(self._target.url, headers= self._headers, proxies= self._proxy)
-        else:
-            reply = requests.get(self._target.url, headers=self._headers)
-        if reply.status_code != 200:
-            print('Cannot connect {} just now. Try it later or check the network...'.format(self._target.url))
-            return None
-        return reply.content.decode(self._charset)
+    # 为了调高效率，一个站内的url应当尽可能使用一个session；不同的站使用不同session
+    async def get_blog(self):
+        async with aiohttp.ClientSession() as session:
+#            if self._set_proxy:
+#                params = {'headers':self._headers, 'proxy':self._proxy}
+#            else:
+#                params = {'headers':self._headers}
+            async with session.get(self._target.url, headers= self._headers) as resp:
+                if resp.status !=200:
+                    print('Cannot connect {} just now. Try it later or check the network...'.format(self._target.url))
+                    return None
+                return await resp.text()
 
     def parse_blog(self, blog):
         doc = etree.fromstring(blog, etree.HTMLParser())
@@ -222,23 +227,44 @@ if __name__=='__main__':
                                          "xpath('.//div[@class=\\'new_img\\']/span')[0].text",
                                          "xpath('.//div[@class=\\'avatar_box newtime\\']/span')[0].text"])
 
-    # conduct the tasks in  sequence
-    tasks = [aliyun, anquanke, freebuf, _4hou]
     # to display in a jinja2 templates, we need to form a dictionary
     # to_show ={ Origin: xxx, Articles: [Article1, Article2,...], Len: len(Articles) } then add it into a list
     template_data = []
     # initialize a jinja template
     env = Environment(loader= FileSystemLoader('./templates'))
     template = env.get_template('report.j2')
+
+    # conduct the tasks in  sequence
+    tasks = [aliyun, anquanke, freebuf, _4hou]
+    '''
     for task in tasks:
         cl = Collector(task)
+        # phase 1, request the blog
         blog = cl.get_blog()
         if blog is None:
             print('the target {} currently not visited!'.format(task.url))
         print("---------- the posts from {} -----------".format(task.url.upper()))
+        # phase2, analyse the response
         cl.parse_blog(blog)
         to_show={'Origin':task.url, 'Articles':cl.posts, 'Len':len(cl.posts)}
         template_data.append(to_show)
+    '''
+    async def unit_task(url, temp):
+        cl = Collector(url)
+        # phase 1, request the blog
+        blog = await cl.get_blog()
+        if blog is None:
+            print('the target {} currently not visited!'.format(url.url))
+        print("---------- the posts from {} -----------".format(url.url.upper()))
+        # phase2, analyse the response
+        cl.parse_blog(blog)
+        to_show={'Origin':url.url, 'Articles':cl.posts, 'Len':len(cl.posts)}
+        temp.append(to_show)
+
+    loop = asyncio.get_event_loop()
+    corutines = [unit_task(u, template_data) for u in tasks]
+    loop.run_until_complete(asyncio.wait(corutines))
+
     nowaday = today()
     with open('{}_breakfast.html'.format(nowaday),'w',encoding='utf-8') as output:
         output.write( template.render(results= template_data, date= nowaday))

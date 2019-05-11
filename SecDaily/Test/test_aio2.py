@@ -17,7 +17,7 @@ async def controller(target):
         print("we've finished {} requets for {}".format(num, target))
         num -= 1
 
-class MyTestCase(unittest.TestCase):
+class Tester(unittest.TestCase):
     def test_something(self):
         targets = ['https://www.4hou.com', 'https://www.anquanke.com']
         loop = asyncio.get_event_loop()
