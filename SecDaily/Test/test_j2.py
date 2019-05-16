@@ -9,10 +9,11 @@
 """
 
 #import json
+#from lxml import etree
 from SecDaily.Breakfast import Article
 from jinja2 import Environment, FileSystemLoader
 
-if __name__=='__main__':
+def test1():
     env = Environment(loader= FileSystemLoader('../templates'))
     template = env.get_template('report.j2')
 
@@ -28,3 +29,7 @@ if __name__=='__main__':
     content = template.render(results = all, date='2019-5-10')
     with open('output.html','w',encoding='utf-8') as file:
         file.write(content)
+
+
+if __name__=='__main__':
+    test1()
