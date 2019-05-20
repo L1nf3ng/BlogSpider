@@ -169,18 +169,23 @@ class Collector:
         # left expressions determine posts information
         debug_num = 0
         for post in posts:
+            Wrong_Handle = False
             data = []
             for od in range(1, 6, 1):
                 try:
                     data.append(eval('post.' + self._target.expr[od]).strip())
                 except Exception as ext:
                     # when exception occurs, store the doc into a file to check later
-                    print(ext,': post number {}, the expression {} errors!'.format(debug_num, od))
-                    filename = '{}_2_parse.html'.format(str(uuid.uuid1()))
-                    with open(filename,'w', encoding= 'utf8') as file:
-                        file.write(blog)
-                    print('we store it in {}'.format(filename))
-                    data.append("无")
+                    if Wrong_Handle == True:
+                        pass
+                    else:
+                        print(ext,': post number {}, the expression {} errors!'.format(debug_num, od))
+                        filename = '{}_2_parse.html'.format(str(uuid.uuid1()))
+                        with open(filename,'w', encoding= 'utf8') as file:
+                            file.write(blog)
+                        print('we store it in {}'.format(filename))
+                        data.append("无")
+                        Wrong_Handle = True
 
             debug_num += 1
             data.append(self._target.url)
