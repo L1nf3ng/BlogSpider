@@ -11,7 +11,7 @@
 import sys
 import getopt
 import socket
-
+import threading
 
 def Usage(simple):
     # 这里和标准版不太一样，-h选项出一个简化版的帮助菜单（带实例），--help/--h选项出完整版的帮助菜单
@@ -94,6 +94,36 @@ def Usage(simple):
         print(complex_usage)
     sys.exit(0)
 
+
+def Server_Thread(cli_fd):
+#    buffer = ''
+    while True:
+        # 1Mb单位的读取
+        txt = cli_fd.recv(1024).decode('utf-8')
+
+        if not txt:
+            break
+#        else:
+#            buffer += txt
+        print(txt)
+    print('Accepted all data')
+
+
+def Listen_Mode(which_ip=None, port=80):
+    fd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # 当一台主机拥有多个mac时会有多个网址，这时需要选择一下
+    target = '0.0.0.0'
+    if which_ip is not None:
+        target = which_ip
+    fd.bind((target, port))
+    fd.listen(5)
+    while True:
+        # 收到连接请求后开启另一个线程处理
+        cli_fd, cli_ip = fd.accept()
+        cli_thread = threading.Thread(target= Server_Thread, args=(cli_fd, ))
+        cli_thread.start()
+
+
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'hlvnp:')
@@ -115,7 +145,7 @@ def main():
         else:
             # 大概是最简单的抛出异常方式
             assert 1==2, "Unhandled Options: {}".format(k)
-    # 发送模式，处理一下后面的ip和port
+    # 客户端模式，处理一下后面的ip和port
     if len(args)>0:
         if len(args)== 1:
             dst_port = 80
@@ -133,7 +163,9 @@ def main():
             else:
                 return False
         assert check_ip(dst_ip), "Wrong address."
-
+    # 选择模式，进入处理
+    if server_mode:
+        Listen_Mode(port= port)
 
 if __name__ == '__main__':
     main()
