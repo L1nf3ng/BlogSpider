@@ -168,8 +168,8 @@ class Collector:
         posts = eval('doc.'+self._target.expr[0])
         # left expressions determine posts information
         debug_num = 0
+        Wrong_Handle = False
         for post in posts:
-            Wrong_Handle = False
             data = []
             for od in range(1, 6, 1):
                 try:
