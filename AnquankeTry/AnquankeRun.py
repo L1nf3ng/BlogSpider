@@ -39,7 +39,7 @@ def grab_first_page():
 
 # METHOD 2
 from urllib.request import urlopen
-from localType import Author,sourceUrl,createTable
+from AnquankeTry.localType import Author,sourceUrl,createTable
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import create_engine
 import os

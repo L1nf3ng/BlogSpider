@@ -2,11 +2,11 @@
 #
 
 import re
-import localType
-from localType import sourceUrl
+
+from AnquankeTry.localType import sourceUrl
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import create_engine
-from run import _tableName
+from AnquankeTry.AnquankeRun import _tableName
 
 engine = create_engine("sqlite://"+"/"+_tableName)
 Session = sessionmaker(bind=engine)
@@ -17,6 +17,7 @@ urls = session.query(sourceUrl).filter().all()
 notFound = list()
 for individual in urls:
     url = individual._blog_url
+    # 这条re表达式值得再读一遍
     res = re.match('(.*(blog|post|blob|research|article|report|intelligence)[^/]*/)',str(url),re.I)
     if res != None:
         print(res.group(1))
