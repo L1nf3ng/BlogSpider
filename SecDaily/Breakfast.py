@@ -41,11 +41,15 @@ class Article:
         self._title= data[0]
         self._href= data[1]
         self._author=  data[2]
-        self._type= data[3]
-        self._date= self.handle_date(data[4])
-        self._origin = data[5]
+        self._author_link = data[3]
+        self._type= data[4]
+        self._date= self.handle_date(data[5])
+        self._origin = data[6]
         if not self._href.startswith('https://') and not self._href.startswith('http://'):
             self._href = self._origin + self._href
+        if not self._author_link.startswith('https://') and not self._author_link.startswith('http://'):
+            self._author_link = self._origin + self._author_link
+
 
     @property
     def title(self):
@@ -54,6 +58,10 @@ class Article:
     @property
     def author(self):
         return self._author
+
+    @property
+    def author_link(self):
+        return self._author_link
 
     @property
     def tag(self):
@@ -171,7 +179,7 @@ class Collector:
         Wrong_Handle = False
         for post in posts:
             data = []
-            for od in range(1, 6, 1):
+            for od in range(1, len(self._target._expr), 1):
                 try:
                     data.append(eval('post.' + self._target.expr[od]).strip())
                 except Exception as ext:
@@ -214,6 +222,7 @@ if __name__=='__main__':
                                          "xpath('./p[1]/a[@class=\\'topic-title\\']')[0].text",
                                          "xpath('./p[1]/a[@class=\\'topic-title\\']/@href')[0]",
                                          "xpath('./p[2]/a[1]')[0].text",
+                                         "xpath('./p[2]/a[1]/@href')[0]",
                                          "xpath('./p[2]/a[2]')[0].text",
                                          "xpath('./p[2]/text()')[2]"])
 
@@ -221,6 +230,7 @@ if __name__=='__main__':
                                          "xpath('.//div[@class=\\'title\\']/a')[0].text",
                                          "xpath('.//div[@class=\\'title\\']/a/@href')[0]",
                                          "xpath('.//div[@class=\\'article-info-left\\']/a/span')[0].text",
+                                         "xpath('.//div[@class=\\'article-info-left\\']/a/img/@src')[0]",
                                          "xpath('.//div[@class=\\'tags  hide-in-mobile-device\\']/a/div/span')[0].text",
                                          "xpath('.//div[@class=\\'article-info-left\\']/span/span/i')[0].tail"])
 
@@ -228,6 +238,7 @@ if __name__=='__main__':
                                          "xpath('./div[@class=\\'news-info\\']/dl/dt/a[1]/@title')[0]",
                                          "xpath('./div[@class=\\'news-info\\']/dl/dt/a[1]/@href')[0]",
                                          "xpath('./div[@class=\\'news-info\\']/dl/dd/span[1]/a')[0].text",
+                                         "xpath('./div[@class=\\'news-info\\']/dl/dd/span[1]/a/@href')[0]",
                                          "xpath('./div[@class=\\'news-info\\']/div/span/a')[0].text",
                                          "xpath('./div[@class=\\'news-info\\']/dl/dd/span[3]')[0].text"],
                                          ["xpath('//div[@class=\\'column-carousel clearfix  recommendNew\\']')",
@@ -237,6 +248,7 @@ if __name__=='__main__':
                                          "xpath('.//div[@class=\\'new_con\\']/a/h1')[0].text",
                                          "xpath('.//div[@class=\\'new_con\\']/a/@href')[0]",
                                          "xpath('.//div[@class=\\'avatar_box newtime\\']/a/p')[0].text",
+                                         "xpath('.//div[@class=\\'avatar_box newtime\\']/a/@href')[0]",
                                          "xpath('.//div[@class=\\'new_img\\']/span')[0].text",
                                          "xpath('.//div[@class=\\'avatar_box newtime\\']/span')[0].text"])
 

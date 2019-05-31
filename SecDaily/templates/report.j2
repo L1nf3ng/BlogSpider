@@ -28,7 +28,7 @@
                 {% for article in item['Articles'] %}
                 <tr align="center">
                     <td>{{article.title}}</td>
-                    <td>{{article.author}}</td>
+                    <td><a href="{{article.author_link}}" target="_blank">{{article.author}}</a></td>
                     <td>{{article.tag}}</td>
                     <td>{{article.date}}</td>
                     <td><a href="{{article.link}}" target="_blank">{{article.link}}</a></td>
