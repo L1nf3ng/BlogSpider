@@ -23,15 +23,13 @@
                 <td>Author</td>
                 <td>Tag</td>
                 <td>Datetime</td>
-                <td>Link</td>
             </tr>
                 {% for article in item['Articles'] %}
                 <tr align="center">
-                    <td>{{article.title}}</td>
+                    <td><a href="{{article.link}}" target="_blank">{{article.title}}</a></td>
                     <td><a href="{{article.author_link}}" target="_blank">{{article.author}}</a></td>
                     <td>{{article.tag}}</td>
                     <td>{{article.date}}</td>
-                    <td><a href="{{article.link}}" target="_blank">{{article.link}}</a></td>
                 </tr>
                 {% endfor %}
             {% else %}
