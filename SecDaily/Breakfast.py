@@ -215,6 +215,7 @@ if __name__=='__main__':
     #               标题位置
     #               链接位置
     #               作者位置
+    #               作者信息位置
     #               分类位置
     #               日期位置
     #               干扰项规则，用来删除干扰节点，因为可能不止一项，
@@ -230,7 +231,7 @@ if __name__=='__main__':
                                          "xpath('.//div[@class=\\'title\\']/a')[0].text",
                                          "xpath('.//div[@class=\\'title\\']/a/@href')[0]",
                                          "xpath('.//div[@class=\\'article-info-left\\']/a/span')[0].text",
-                                         "xpath('.//div[@class=\\'article-info-left\\']/a/img/@src')[0]",
+                                         "xpath('.//div[@class=\\'article-info-left\\']/a/@href')[0]",
                                          "xpath('.//div[@class=\\'tags  hide-in-mobile-device\\']/a/div/span')[0].text",
                                          "xpath('.//div[@class=\\'article-info-left\\']/span/span/i')[0].tail"])
 

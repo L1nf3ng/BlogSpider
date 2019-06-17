@@ -30,12 +30,10 @@ def spin(msg, signal):
             break
     write(' ' * len(status) + '\x08' * len(status))
 
-
 def slow_function():
     # 假装等待I/O一段时间
     time.sleep(3)
     return 42
-
 
 def supervisor():
     signal = Signal()
