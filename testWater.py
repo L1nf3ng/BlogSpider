@@ -4,6 +4,8 @@
 import asyncio
 import json
 import websockets
+from urllib.parse import urlparse
+from urllib.request import urlopen
 from pyppeteer.launcher import launch, connect
 
 ################################################################
@@ -27,8 +29,7 @@ async def main():
 
 #    browser = await connect({'browserWSEndpoint':browser.wsEndpoint})
     wsUrl = browser.wsEndpoint
-    print('CDP监听端口：',wsUrl)
-
+    print('修改后的CDP监听端口：',wsUrl)
     ws = await websockets.connect(wsUrl)
 
     await ws.send(json.dumps({"id":0,"method": "Target.createTarget", "params": {'url': 'https://xz.aliyun.com'}}))
@@ -39,8 +40,15 @@ async def main():
 #    reply2 = await ws.recv()
 #    targetId2 = json.loads(reply2)['result']['browserContextId']
 
-    await ws.send(json.dumps({"id":1,"method": "Network.getCookies", "params": {}}))
+    schema, host, path, _, _, _ = urlparse(wsUrl)
+    pageWsUrl = 'http://'+ host +'/json/new'
+    reply = urlopen(pageWsUrl)
+    pageWsUrl  = json.loads(reply.read())['webSocketDebuggerUrl']
+    ws = await websockets.connect(pageWsUrl)
+
+    await ws.send(json.dumps({"id":1,"method": "Page.navigate", "params": {"url":"https://www.anquanke.com"}}))
     reply3 = await ws.recv()
+
 
     return targetId1, reply3
     # newePage()新打开一个tab，返回Page类
