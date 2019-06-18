@@ -211,13 +211,13 @@ if __name__=='__main__':
     # test with xz.aliyun.com
     # 迫于html文档的复杂性，这里的检测原语全部带上xpath，送入后用eval执行
     # expr顺序对应意义：
-    #               post位置
-    #               标题位置
-    #               链接位置
-    #               作者位置
-    #               作者信息位置
-    #               分类位置
-    #               日期位置
+    #           0-->    post位置
+    #           1-->    标题位置
+    #           2-->    链接位置
+    #           3-->    作者位置
+    #           4-->    作者信息位置
+    #           5-->    分类位置
+    #           6-->    日期位置
     #               干扰项规则，用来删除干扰节点，因为可能不止一项，
     aliyun = Target('https://xz.aliyun.com', ["xpath('//td')",
                                          "xpath('./p[1]/a[@class=\\'topic-title\\']')[0].text",
