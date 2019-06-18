@@ -26,3 +26,19 @@
 ## 其他用途
 
 这个repo只用来放爬虫可惜了。决定在这里放一些自写的、扒别人的小脚本，以及一个POCs文件夹专门用来记录自己验证过的漏洞细节。
+
+## Reading Lists
+
+* [https://blog.csdn.net/he_and/article/details/77963446]()
+* [https://www.jianshu.com/p/ecab9fc8d746]()
+> pyppeteer官方API文档
+* [https://miyakogi.github.io/pyppeteer/reference.html]()
+> 别人的试水帖
+* [https://lightless.me/archives/first-glance-at-chrome-headless-browser.html]()
+* [https://lightless.me/archives/chrome-headless-second.html]()
+> Chrome DevTools Protocol
+* [https://chromedevtools.github.io/devtools-protocol/tot]()
+> 关于库本身
+
+* [https://www.anquanke.com/post/id/103350]()
+
