@@ -12,8 +12,27 @@ from pyppeteer.launcher import launch, connect
 #  API文档：https://miyakogi.github.io/pyppeteer/reference.html
 ################################################################
 
-target = 'https://hz.fang.com'
-# target = 'http://10.10.10.108/AppSensorDemo/login.jsp'
+########################
+# Crawler function list：
+# 1.    TreeWalker节点遍历
+# 2.    表单查询（填入数据）
+# 3.    DOM0事件触发
+# 4.    Js代码注入及请求拦截
+# 5.    DOM2事件触发
+# 6.    节点变更查询
+# 7.    session分离控制
+#########################
+# Fuzzer function list:
+# 1.    Payload注入与检测
+# 2.    请求Url去重
+# 3.    记录请求/响应
+##########################
+
+
+
+# target = 'https://hz.fang.com'
+# target = 'http://10.10.10.108/test/365.html'
+target = 'http://10.10.10.108/bodgeit/'
 
 
 def retrieve(port,path):
@@ -29,11 +48,11 @@ async def main():
     # 开启devtools选项，默认会关闭headless
     browser = await launch({"ignoreHTTPSErrors": True, "devtools":True,
                             "args": [
-                                "--disable-gpu", "--start-maximized",
+                                "--disable-gpu",
                                 "--disable-web-security", "--disable-xss-auditor",
                                 "--no-sandbox", "--disable-setuid-sandbox",
                             ]})
-#        "executablePath":"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"     "--window-size=1366,850"
+#   "executablePath":"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"   "--window-size=1366,850"   "--start-maximized",
 
     """
 #    browser = await connect({'browserWSEndpoint':browser.wsEndpoint})
@@ -66,11 +85,11 @@ async def main():
 
     async def recordAndGo(req):
         print(req.url)
-        await req.continue_()
+        await req.abort()
 
     await page.exposeFunction('hello', lambda name:print(name))
-    await page.setRequestInterception(True)
-    page.on('request', lambda request: asyncio.ensure_future(recordAndGo(request)))
+#    await page.setRequestInterception(True)
+#    page.on('request', lambda request: asyncio.ensure_future(recordAndGo(request)))
 
     await page.goto(url=target)
     # pyppeteer提供多种检索方法：
@@ -82,6 +101,35 @@ async def main():
     # evaluate函数的参数是一段待执行的javascript代码!
     # 例如：这里定义个匿名函数，参数element，返回element.src属性，通过外部i传值
     # titles = await page.evaluate('(element)=>{return element.src}',i)
+
+    await page.evaluate("""() => {
+        var treeWalker = document.createTreeWalker(
+        document.body, NodeFilter.SHOW_ELEMENT,
+        { acceptNode: function(node) { return NodeFilter.FILTER_ACCEPT; } },false );
+        
+        while(treeWalker.nextNode()) {
+            var element = treeWalker.currentNode;
+            console.log(element);
+            if (element.nodeName.startsWith('on')) {
+            console.log(element.nodeName, element.nodeValue);
+            }
+        };   
+    }""")
+
+
+    await page.evaluate('''()=>{
+        XMLHttpRequest.prototype.__originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+            console.log("Open: "+method+":"+url+"|");
+            return this.__originalOpen(method, url, async, user, password);
+        }
+        XMLHttpRequest.prototype.__originalSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function(data) {
+            console.log("Data: "+data);
+            return this.__originalSend(data);
+        }    
+    }''')
+
 
     events = await page.evaluate("""()=>{
         results = [];
