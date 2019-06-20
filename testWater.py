@@ -1,4 +1,4 @@
-# coding:utf-8
+﻿# coding:utf-8
 # test instance from github
 
 import asyncio
@@ -52,7 +52,7 @@ async def main():
                                 "--disable-web-security", "--disable-xss-auditor",
                                 "--no-sandbox", "--disable-setuid-sandbox",
                             ]})
-#   "executablePath":"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"   "--window-size=1366,850"   "--start-maximized",
+#   "executablePath": "C:/Users/lenovo/.pyppeteer/local-chromium/543305/chrome-win32/Chrome.exe"  "--window-size=1366,850"   "--start-maximized",
 
     """
 #    browser = await connect({'browserWSEndpoint':browser.wsEndpoint})
