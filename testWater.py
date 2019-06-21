@@ -1,4 +1,4 @@
-﻿# coding:utf-8
+# coding:utf-8
 # test instance from github
 
 import asyncio
@@ -32,13 +32,70 @@ from pyppeteer.launcher import launch, connect
 
 # target = 'https://hz.fang.com'
 # target = 'http://10.10.10.108/test/365.html'
-target = 'http://10.10.10.108/bodgeit/'
+target = 'https://www.baidu.com'
 
+
+# some CDP test code
+
+"""
+#    browser = await connect({'browserWSEndpoint':browser.wsEndpoint})
+wsUrl = browser.wsEndpoint
+print('CDP监听端口：',wsUrl)
+urlElements = urlparse(wsUrl)
+
+# step1, record the blank page id, shutdown it when open a new tab
+metas = json.loads(retrieve(urlElements.port, '/json/list'))
+for page in metas:
+    if page['type']=='page':
+        blankPageId = page['id']
+
+ws = await websockets.connect(wsUrl)
+await ws.send(json.dumps({"id":0,"method": "Target.createTarget", "params": {'url': 'https://xz.aliyun.com'}}))
+reply = await ws.recv()
+targetId1 = json.loads(reply)['result']['targetId']
+
+retrieve(urlElements.port, '/json/close/{}'.format(blankPageId))
+
+pageWsUrl  = json.loads(retrieve(urlElements.port, '/json/new'))['webSocketDebuggerUrl']
+ws = await websockets.connect(pageWsUrl)
+
+await ws.send(json.dumps({"id":1,"method": "Page.navigate", "params": {"url":"https://www.anquanke.com"}}))
+reply3 = await ws.recv()
+"""
 
 def retrieve(port,path):
     target = 'http://127.0.0.1:'+str(port)+path
     response = urlopen(target)
     return response.read().decode('utf-8')
+
+async def NodeTraversing(Page):
+    return await Page.evaluate("""() => {
+        // createTreeWalker(root, whatToShow, filter, entityReferenceExpansion) 实体引用扩展
+        // TreeWalker内部采用深度优先遍历
+
+        var treeWalker = document.createTreeWalker(
+        document.body, NodeFilter.SHOW_ELEMENT,
+        { acceptNode: function(node) { return NodeFilter.FILTER_ACCEPT; } },false );
+
+        var inputs = new Array();
+        while(treeWalker.nextNode()) {
+            var element = treeWalker.currentNode;
+
+            // 加入一些表单处理的函数，参照字典填充字段
+            if (element.nodeName == "FORM") {
+                for(var i=0; i<element.length;i++){
+                    if (element[i].nodeName == "INPUT"){
+                        inputs.push({type:element[i].type, name:element[i].nodeName.name})
+                    }
+                }            
+            }
+            
+            if (element.nodeName.startsWith('on')) {
+                console.log(element.nodeName, element.nodeValue);
+            }
+        };
+        return inputs;   
+    }""")
 
 
 async def main():
@@ -54,31 +111,7 @@ async def main():
                             ]})
 #   "executablePath": "C:/Users/lenovo/.pyppeteer/local-chromium/543305/chrome-win32/Chrome.exe"  "--window-size=1366,850"   "--start-maximized",
 
-    """
-#    browser = await connect({'browserWSEndpoint':browser.wsEndpoint})
-    wsUrl = browser.wsEndpoint
-    print('CDP监听端口：',wsUrl)
-    urlElements = urlparse(wsUrl)
 
-    # step1, record the blank page id, shutdown it when open a new tab
-    metas = json.loads(retrieve(urlElements.port, '/json/list'))
-    for page in metas:
-        if page['type']=='page':
-            blankPageId = page['id']
-
-    ws = await websockets.connect(wsUrl)
-    await ws.send(json.dumps({"id":0,"method": "Target.createTarget", "params": {'url': 'https://xz.aliyun.com'}}))
-    reply = await ws.recv()
-    targetId1 = json.loads(reply)['result']['targetId']
-
-    retrieve(urlElements.port, '/json/close/{}'.format(blankPageId))
-
-    pageWsUrl  = json.loads(retrieve(urlElements.port, '/json/new'))['webSocketDebuggerUrl']
-    ws = await websockets.connect(pageWsUrl)
-
-    await ws.send(json.dumps({"id":1,"method": "Page.navigate", "params": {"url":"https://www.anquanke.com"}}))
-    reply3 = await ws.recv()
-    """
 
     # newePage()新打开一个tab，返回Page类
     page = await browser.newPage()
@@ -102,20 +135,7 @@ async def main():
     # 例如：这里定义个匿名函数，参数element，返回element.src属性，通过外部i传值
     # titles = await page.evaluate('(element)=>{return element.src}',i)
 
-    await page.evaluate("""() => {
-        var treeWalker = document.createTreeWalker(
-        document.body, NodeFilter.SHOW_ELEMENT,
-        { acceptNode: function(node) { return NodeFilter.FILTER_ACCEPT; } },false );
-        
-        while(treeWalker.nextNode()) {
-            var element = treeWalker.currentNode;
-            console.log(element);
-            if (element.nodeName.startsWith('on')) {
-            console.log(element.nodeName, element.nodeValue);
-            }
-        };   
-    }""")
-
+    formNode = await NodeTraversing(page)
 
     await page.evaluate('''()=>{
         XMLHttpRequest.prototype.__originalOpen = XMLHttpRequest.prototype.open;
