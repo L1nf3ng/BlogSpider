@@ -39,6 +39,12 @@
 > Chrome DevTools Protocol
 * [https://chromedevtools.github.io/devtools-protocol/tot]()
 > 关于库本身
-
 * [https://www.anquanke.com/post/id/103350]()
+> StackOverflow
+* [https://stackoverflow.com/questions/53945876/telethon-python-asyncio-typeerror-coroutine-object-is-not-callable#]()
+> 有用的经验
+* [http://blog.fatezero.org/2018/03/05/web-scanner-crawler-01/]()
+* [http://blog.fatezero.org/2018/04/09/web-scanner-crawler-02/]()
+* [http://blog.fatezero.org/2018/04/15/web-scanner-crawler-03/]()
+
 
