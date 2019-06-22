@@ -69,7 +69,7 @@ def retrieve(port,path):
     return response.read().decode('utf-8')
 
 async def NodeTraversing(Page):
-    return await Page.evaluate("""() => {
+    results = await Page.evaluate("""() => {
         // createTreeWalker(root, whatToShow, filter, entityReferenceExpansion) 实体引用扩展
         // TreeWalker内部采用深度优先遍历
 
@@ -96,6 +96,7 @@ async def NodeTraversing(Page):
         };
         return inputs;   
     }""")
+    return results
 
 
 async def main():
@@ -135,7 +136,35 @@ async def main():
     # 例如：这里定义个匿名函数，参数element，返回element.src属性，通过外部i传值
     # titles = await page.evaluate('(element)=>{return element.src}',i)
 
-    formNode = await NodeTraversing(page)
+#    formNode = await NodeTraversing(page)
+    fromNode = await page.evaluate("""() => {
+        // createTreeWalker(root, whatToShow, filter, entityReferenceExpansion) 实体引用扩展
+        // TreeWalker内部采用深度优先遍历
+
+        var treeWalker = document.createTreeWalker(
+        document.body, NodeFilter.SHOW_ELEMENT,
+        { acceptNode: function(node) { return NodeFilter.FILTER_ACCEPT; } },false );
+
+        var inputs = new Array();
+        while(treeWalker.nextNode()) {
+            var element = treeWalker.currentNode;
+
+            // 加入一些表单处理的函数，参照字典填充字段
+            if (element.nodeName == "FORM") {
+                for(var i=0; i<element.length;i++){
+                    if (element[i].nodeName == "INPUT"){
+                        inputs.push({type:element[i].type, name:element[i].name})
+                    }
+                }            
+            }
+
+            if (element.nodeName.startsWith('on')) {
+                console.log(element.nodeName, element.nodeValue);
+            }
+        };
+        return inputs;   
+    }""")
+
 
     await page.evaluate('''()=>{
         XMLHttpRequest.prototype.__originalOpen = XMLHttpRequest.prototype.open;
