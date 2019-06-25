@@ -14,6 +14,7 @@ from pyppeteer.launcher import launch, connect
 
 ########################
 # Crawler function list：
+# 0.    Hook住导航，避免页面提前跳转
 # 1.    TreeWalker节点遍历
 # 2.    表单查询（填入数据）
 # 3.    DOM0事件触发
@@ -31,14 +32,14 @@ from pyppeteer.launcher import launch, connect
 
 
 # target = 'https://hz.fang.com'
-# target = 'http://10.10.10.108/test/365.html'
+# target = 'http://118.25.88.94:3000'
 target = 'https://www.baidu.com'
 
 
 # some CDP test code
 
 """
-#    browser = await connect({'browserWSEndpoint':browser.wsEndpoint})
+# browser = await connect({'browserWSEndpoint':browser.wsEndpoint})
 wsUrl = browser.wsEndpoint
 print('CDP监听端口：',wsUrl)
 urlElements = urlparse(wsUrl)
@@ -69,7 +70,7 @@ def retrieve(port,path):
     return response.read().decode('utf-8')
 
 async def NodeTraversing(Page):
-    results = await Page.evaluate("""() => {
+    return  await Page.evaluate("""() => {
         // createTreeWalker(root, whatToShow, filter, entityReferenceExpansion) 实体引用扩展
         // TreeWalker内部采用深度优先遍历
 
@@ -85,18 +86,18 @@ async def NodeTraversing(Page):
             if (element.nodeName == "FORM") {
                 for(var i=0; i<element.length;i++){
                     if (element[i].nodeName == "INPUT"){
-                        inputs.push({type:element[i].type, name:element[i].nodeName.name})
+                        inputs.push({type:element[i].type, name:element[i].name, value:element[i].value})
                     }
                 }            
             }
-            
+
             if (element.nodeName.startsWith('on')) {
                 console.log(element.nodeName, element.nodeValue);
             }
         };
         return inputs;   
     }""")
-    return results
+#    return results
 
 
 async def main():
@@ -106,12 +107,11 @@ async def main():
     # 开启devtools选项，默认会关闭headless
     browser = await launch({"ignoreHTTPSErrors": True, "devtools":True,
                             "args": [
-                                "--disable-gpu",
+                                "--disable-gpu", "--start-maximized",
                                 "--disable-web-security", "--disable-xss-auditor",
                                 "--no-sandbox", "--disable-setuid-sandbox",
                             ]})
-#   "executablePath": "C:/Users/lenovo/.pyppeteer/local-chromium/543305/chrome-win32/Chrome.exe"  "--window-size=1366,850"   "--start-maximized",
-
+#   "executablePath": "C:/Users/lenovo/.pyppeteer/local-chromium/543305/chrome-win32/Chrome.exe"  "--window-size=1366,850"
 
 
     # newePage()新打开一个tab，返回Page类
@@ -136,35 +136,7 @@ async def main():
     # 例如：这里定义个匿名函数，参数element，返回element.src属性，通过外部i传值
     # titles = await page.evaluate('(element)=>{return element.src}',i)
 
-#    formNode = await NodeTraversing(page)
-    fromNode = await page.evaluate("""() => {
-        // createTreeWalker(root, whatToShow, filter, entityReferenceExpansion) 实体引用扩展
-        // TreeWalker内部采用深度优先遍历
-
-        var treeWalker = document.createTreeWalker(
-        document.body, NodeFilter.SHOW_ELEMENT,
-        { acceptNode: function(node) { return NodeFilter.FILTER_ACCEPT; } },false );
-
-        var inputs = new Array();
-        while(treeWalker.nextNode()) {
-            var element = treeWalker.currentNode;
-
-            // 加入一些表单处理的函数，参照字典填充字段
-            if (element.nodeName == "FORM") {
-                for(var i=0; i<element.length;i++){
-                    if (element[i].nodeName == "INPUT"){
-                        inputs.push({type:element[i].type, name:element[i].name})
-                    }
-                }            
-            }
-
-            if (element.nodeName.startsWith('on')) {
-                console.log(element.nodeName, element.nodeValue);
-            }
-        };
-        return inputs;   
-    }""")
-
+    formNodes = await NodeTraversing(page)
 
     await page.evaluate('''()=>{
         XMLHttpRequest.prototype.__originalOpen = XMLHttpRequest.prototype.open;
@@ -178,7 +150,10 @@ async def main():
             return this.__originalSend(data);
         }    
     }''')
-
+    for input in formNodes:
+        if input['type'] == 'text':
+            input['name'] = 'aoew'
+            pass
 
     events = await page.evaluate("""()=>{
         results = [];
