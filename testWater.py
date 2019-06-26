@@ -32,9 +32,12 @@ from pyppeteer.launcher import launch, connect
 
 
 # target = 'https://hz.fang.com'
-# target = 'http://118.25.88.94:3000'
-target = 'https://www.baidu.com'
+target = 'http://localhost:63342/BlogSpider/Temp/test.html?_ijt=2lfranj584l7t9boii2hgk433f'
+# target = 'https://www.baidu.com'
 
+image_raw_response = ('SFRUUC8xLjEgMjAwIE9LCkNvbnRlbnQtVHlwZTogaW1hZ2UvcG5nCgqJUE5HDQoaCgAAAA1JSERSAAAAAQ'
+                      'AAAAEBAwAAACXbVsoAAAAGUExURczMzP///9ONFXYAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAKSURBVAiZY'
+                      '2AAAAACAAH0cWSmAAAAAElFTkSuQmCC')
 
 # some CDP test code
 
@@ -62,12 +65,14 @@ ws = await websockets.connect(pageWsUrl)
 
 await ws.send(json.dumps({"id":1,"method": "Page.navigate", "params": {"url":"https://www.anquanke.com"}}))
 reply3 = await ws.recv()
-"""
+
 
 def retrieve(port,path):
     target = 'http://127.0.0.1:'+str(port)+path
     response = urlopen(target)
     return response.read().decode('utf-8')
+"""
+
 
 async def NodeTraversing(Page):
     return  await Page.evaluate("""() => {
@@ -86,7 +91,10 @@ async def NodeTraversing(Page):
             if (element.nodeName == "FORM") {
                 for(var i=0; i<element.length;i++){
                     if (element[i].nodeName == "INPUT"){
-                        inputs.push({type:element[i].type, name:element[i].name, value:element[i].value})
+                        inputs.push({type:element[i].type, 
+                        name:element[i].name, 
+                        value:element[i].value,
+                        id:element[i].id})
                     }
                 }            
             }
@@ -100,45 +108,8 @@ async def NodeTraversing(Page):
 #    return results
 
 
-async def main():
-
-    # launch()还有好多有用的参数：
-    # {'args': ['--proxy-server=127.0.0.1:1080']}
-    # 开启devtools选项，默认会关闭headless
-    browser = await launch({"ignoreHTTPSErrors": True, "devtools":True,
-                            "args": [
-                                "--disable-gpu", "--start-maximized",
-                                "--disable-web-security", "--disable-xss-auditor",
-                                "--no-sandbox", "--disable-setuid-sandbox",
-                            ]})
-#   "executablePath": "C:/Users/lenovo/.pyppeteer/local-chromium/543305/chrome-win32/Chrome.exe"  "--window-size=1366,850"
-
-
-    # newePage()新打开一个tab，返回Page类
-    page = await browser.newPage()
-
-    async def recordAndGo(req):
-        print(req.url)
-        await req.abort()
-
-    await page.exposeFunction('hello', lambda name:print(name))
-#    await page.setRequestInterception(True)
-#    page.on('request', lambda request: asyncio.ensure_future(recordAndGo(request)))
-
-    await page.goto(url=target)
-    # pyppeteer提供多种检索方法：
-    # J->querySelector
-    # JJ->querySelectorAll
-    # Jeval->querySelectorEval
-    # JJeval->querySelectorAllEval
-    # Jx->xpath
-    # evaluate函数的参数是一段待执行的javascript代码!
-    # 例如：这里定义个匿名函数，参数element，返回element.src属性，通过外部i传值
-    # titles = await page.evaluate('(element)=>{return element.src}',i)
-
-    formNodes = await NodeTraversing(page)
-
-    await page.evaluate('''()=>{
+async def InterceptXHR(Page):
+    await Page.evaluateOnNewDocument('''()=>{
         XMLHttpRequest.prototype.__originalOpen = XMLHttpRequest.prototype.open;
         XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
             console.log("Open: "+method+":"+url+"|");
@@ -149,11 +120,113 @@ async def main():
             console.log("Data: "+data);
             return this.__originalSend(data);
         }    
+        XMLHttpRequest.prototype.__setRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
+        XMLHttpRequest.prototype.setRequestHeader = function (header, value) {
+        // 记录 header
+            console.log("Headers: "+header+" |Value: "+value);
+            return this.__setRequestHeader(header, value);
+        }
+        // 关闭abort功能
+        XMLHttpRequest.prototype.abort = function () {};
     }''')
+
+async def InterceptWindow(Page):
+    await Page.evaluateOnNewDocument('''()=>{
+        var oldWebSocket = window.WebSocket;
+        window.WebSocket = function(url, arg) {
+            console.log("new link: " + url);
+            return new oldWebSocket(url, arg);
+        }
+        var oldEventSource = window.EventSource;
+        window.EventSource = function(url) {
+            console.log("new link: " + url);
+            return new oldEventSource(url);
+        }
+        var oldFetch = window.fetch;
+        window.fetch = function(url) {
+            console.log("new link: " + url);
+            return oldFetch(url);
+        }
+        
+        window.close = function() {}
+        window.open = function(url) { console.log(url); }
+        
+        window.__originalSetTimeout = window.setTimeout;
+        window.setTimeout = function() {
+            arguments[1] = 0;
+            return window.__originalSetTimeout.apply(this, arguments);
+        }
+        window.__originalSetInterval = window.setInterval;
+        window.setInterval = function() {
+            arguments[1] = 0;
+            return window.__originalSetInterval.apply(this, arguments);
+        }
+    }''')
+
+
+async def main():
+
+    # launch()还有好多有用的参数：
+    # {'args': ['--proxy-server=127.0.0.1:1080']}
+    # 开启devtools选项，默认会关闭headless
+    browser = await launch({"ignoreHTTPSErrors": True, "devtools":True,
+                            "args": [
+                                "--disable-gpu",
+                                "--disable-web-security", "--disable-xss-auditor",
+                                "--no-sandbox", "--disable-setuid-sandbox",
+                            ]})
+
+#    "executablePath": "C:/Users/lenovo/.pyppeteer/local-chromium/543305/chrome-win32/Chrome.exe"  "--window-size=1366,850"
+#    "--start-maximized",
+
+    # newePage()新打开一个tab，返回Page类
+    page = await browser.newPage()
+
+    async def recordAndGo(req):
+        global image_raw_response
+        print(req.method + "====>" +req.url)
+        print(req.headers)
+        if req.method == 'POST':
+            print(req.postData)
+        if req.resourceType == 'image':
+            # 返回伪造的图片内容
+            await req.respond({'status':200,'body':image_raw_response})
+        await req.continue_()
+
+    async def close_dialog(dialog):
+        print(dialog.message)
+        print(dialog.type)
+        await dialog.dismiss()
+
+    await page.exposeFunction('hello', lambda name:print(name))
+    await page.setRequestInterception(True)
+    page.on('request', lambda request: asyncio.ensure_future(recordAndGo(request)))
+    page.on('dialog', lambda dialog: asyncio.ensure_future(close_dialog(dialog)))
+#    await InterceptXHR(page)
+#    await InterceptWindow(page)
+    await page.goto(url=target)
+    # pyppeteer提供多种检索方法：
+    # J->querySelector
+    # JJ->querySelectorAll
+    # Jeval->querySelectorEval
+    # JJeval->querySelectorAllEval
+    # Jx->xpath
+    # evaluate函数的参数是一段待执行的javascript代码!
+    # 例如：这里定义个匿名函数，参数element，返回element.src属性，通过外部i传值
+    # titles = await page.evaluate('(element)=>{return element.src}', param)
+
+    formNodes = await NodeTraversing(page)
+
     for input in formNodes:
-        if input['type'] == 'text':
-            input['name'] = 'aoew'
-            pass
+        if input['type']== 'text':
+            expr = '//input[@id="'+input['id']+'"]'
+            inputer = await page.xpath(expr)
+            await inputer[0].type('hello world')
+        if input['type'] == 'submit':
+            # locate the element handle
+            expr = '//input[@id="'+input['id']+'"]'
+            inputer = await page.xpath(expr)
+            await inputer[0].click()
 
     events = await page.evaluate("""()=>{
         results = [];
