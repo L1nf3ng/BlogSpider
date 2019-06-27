@@ -32,7 +32,7 @@ from pyppeteer.launcher import launch, connect
 
 
 # target = 'https://hz.fang.com'
-target = 'http://localhost:63342/BlogSpider/Temp/test.html?_ijt=2lfranj584l7t9boii2hgk433f'
+target = 'http://118.25.88.94:3000'
 # target = 'https://www.baidu.com'
 
 image_raw_response = ('SFRUUC8xLjEgMjAwIE9LCkNvbnRlbnQtVHlwZTogaW1hZ2UvcG5nCgqJUE5HDQoaCgAAAA1JSERSAAAAAQ'
@@ -43,22 +43,22 @@ image_raw_response = ('SFRUUC8xLjEgMjAwIE9LCkNvbnRlbnQtVHlwZTogaW1hZ2UvcG5nCgqJU
 
 """
 # browser = await connect({'browserWSEndpoint':browser.wsEndpoint})
+
 wsUrl = browser.wsEndpoint
-print('CDP监听端口：',wsUrl)
+print('CDP监听端口：', wsUrl)
 urlElements = urlparse(wsUrl)
 
 # step1, record the blank page id, shutdown it when open a new tab
 metas = json.loads(retrieve(urlElements.port, '/json/list'))
-for page in metas:
-    if page['type']=='page':
-        blankPageId = page['id']
-
+for meta in metas:
+    if meta['type'] == 'page':
+        blankPageId = meta['id']
+        
 ws = await websockets.connect(wsUrl)
 await ws.send(json.dumps({"id":0,"method": "Target.createTarget", "params": {'url': 'https://xz.aliyun.com'}}))
 reply = await ws.recv()
 targetId1 = json.loads(reply)['result']['targetId']
 
-retrieve(urlElements.port, '/json/close/{}'.format(blankPageId))
 
 pageWsUrl  = json.loads(retrieve(urlElements.port, '/json/new'))['webSocketDebuggerUrl']
 ws = await websockets.connect(pageWsUrl)
@@ -66,16 +66,17 @@ ws = await websockets.connect(pageWsUrl)
 await ws.send(json.dumps({"id":1,"method": "Page.navigate", "params": {"url":"https://www.anquanke.com"}}))
 reply3 = await ws.recv()
 
-
+# pyppeteer大多数类已经通过ws实现了CDP，所以一般功能都可以在API中找到，而无须自己实现
 def retrieve(port,path):
     target = 'http://127.0.0.1:'+str(port)+path
     response = urlopen(target)
     return response.read().decode('utf-8')
+
 """
 
 
 async def NodeTraversing(Page):
-    return  await Page.evaluate("""() => {
+    return await Page.evaluate("""() => {
         // createTreeWalker(root, whatToShow, filter, entityReferenceExpansion) 实体引用扩展
         // TreeWalker内部采用深度优先遍历
 
@@ -130,6 +131,20 @@ async def InterceptXHR(Page):
         XMLHttpRequest.prototype.abort = function () {};
     }''')
 
+async def hookEventListener(Page):
+    await Page.evaluateOnNewDocument('''()=>{
+    _addEventListener = Element.prototype.addEventListener;
+    Element.prototype.addEventListener = function() {
+        console.log(arguments, this)
+        _addEventListener.apply(this, arguments)
+    }
+    window.__originalAddEventListener = window.addEventListener;
+    window.addEventListener = function() {
+        console.log(arguments, this)
+        window.__originalAddEventListener.apply(this, arguments)
+    }
+    }''')
+
 async def InterceptWindow(Page):
     await Page.evaluateOnNewDocument('''()=>{
         var oldWebSocket = window.WebSocket;
@@ -171,7 +186,7 @@ async def main():
     # 开启devtools选项，默认会关闭headless
     browser = await launch({"ignoreHTTPSErrors": True, "devtools":True,
                             "args": [
-                                "--disable-gpu",
+                                "--disable-gpu", "--window-size=1000,800"
                                 "--disable-web-security", "--disable-xss-auditor",
                                 "--no-sandbox", "--disable-setuid-sandbox",
                             ]})
@@ -180,10 +195,14 @@ async def main():
 #    "--start-maximized",
 
     # newePage()新打开一个tab，返回Page类
-    page = await browser.newPage()
+    pageLists = await browser.pages()
+    page = pageLists[0]
 
     async def recordAndGo(req):
         global image_raw_response
+#        if req.url.startswith('ws://'):
+#            print('Websocket :'+req.url)
+#        else:
         print(req.method + "====>" +req.url)
         print(req.headers)
         if req.method == 'POST':
@@ -191,6 +210,7 @@ async def main():
         if req.resourceType == 'image':
             # 返回伪造的图片内容
             await req.respond({'status':200,'body':image_raw_response})
+            return
         await req.continue_()
 
     async def close_dialog(dialog):
@@ -198,12 +218,14 @@ async def main():
         print(dialog.type)
         await dialog.dismiss()
 
-    await page.exposeFunction('hello', lambda name:print(name))
+
+#    await page.exposeFunction('hello', lambda name:print(name))
     await page.setRequestInterception(True)
     page.on('request', lambda request: asyncio.ensure_future(recordAndGo(request)))
-    page.on('dialog', lambda dialog: asyncio.ensure_future(close_dialog(dialog)))
+#    page.on('dialog', lambda dialog: asyncio.ensure_future(close_dialog(dialog)))
 #    await InterceptXHR(page)
-#    await InterceptWindow(page)
+    await InterceptWindow(page)
+    await hookEventListener(page)
     await page.goto(url=target)
     # pyppeteer提供多种检索方法：
     # J->querySelector
@@ -214,6 +236,11 @@ async def main():
     # evaluate函数的参数是一段待执行的javascript代码!
     # 例如：这里定义个匿名函数，参数element，返回element.src属性，通过外部i传值
     # titles = await page.evaluate('(element)=>{return element.src}', param)
+
+    # then close the tab
+#    retrieve(urlElements.port, '/json/close/{}'.format(blankPageId))
+
+    cookies = await page.cookies()
 
     formNodes = await NodeTraversing(page)
 
@@ -230,30 +257,17 @@ async def main():
 
     events = await page.evaluate("""()=>{
         results = [];
-        /*
+
         nodes = document.all;
         for(j = 0;j < nodes.length; j++) {
             attrs = nodes[j].attributes;
             for(k=0; k<attrs.length; k++) {
                 if (attrs[k].nodeName.startsWith('on')) {
                     results.push({
-                        nodeName: attrs[k].nodeName,
-                        nodeValue: attrs[k].nodeValue
+                        EventsName: attrs[k].nodeName,
+                        EventsValue: attrs[k].nodeValue
                     })
                 }
-            }
-        }*/
-
-        for(var i=0;i<document.forms.length;i++){
-            form = document.forms[i];
-            console.log(form.method, form.action)
-            for(var j=0;j<form.length;j++){
-                input = form[j];
-                results.push({
-                    nodeName: input.nodeName,
-                    inputType: input.type,
-                    inputName: input.name
-                })
             }
         }
         return results;
@@ -261,7 +275,7 @@ async def main():
     """)
 
     await browser.close()
-    # return targetId1, reply3, events
+    # return targetId1, events, reply3
     return events
 
 if __name__ =='__main__':
