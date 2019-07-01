@@ -191,7 +191,8 @@ async def main():
                                 "--no-sandbox", "--disable-setuid-sandbox",
                             ]})
 
-#    "executablePath": "C:/Users/lenovo/.pyppeteer/local-chromium/543305/chrome-win32/Chrome.exe"  "--window-size=1366,850"
+#    "executablePath": "C:/Users/lenovo/.pyppeteer/local-chromium/543305/chrome-win32/Chrome.exe"
+#    "--window-size=1366,850"
 #    "--start-maximized",
 
     # newePage()新打开一个tab，返回Page类
@@ -217,7 +218,6 @@ async def main():
         print(dialog.message)
         print(dialog.type)
         await dialog.dismiss()
-
 
 #    await page.exposeFunction('hello', lambda name:print(name))
     await page.setRequestInterception(True)
