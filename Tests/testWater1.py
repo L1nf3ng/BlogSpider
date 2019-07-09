@@ -15,12 +15,14 @@ from pyppeteer.launcher import launch, connect
 ########################
 # Crawler function list：
 # 0.    Hook住导航，避免页面提前跳转
+# 4.    Js代码注入及请求拦截
+# 6.    节点变更查询
+
 # 1.    TreeWalker节点遍历
 # 2.    表单查询（填入数据）
 # 3.    DOM0事件触发
-# 4.    Js代码注入及请求拦截
 # 5.    DOM2事件触发
-# 6.    节点变更查询
+
 # 7.    session分离控制
 #########################
 # Fuzzer function list:
