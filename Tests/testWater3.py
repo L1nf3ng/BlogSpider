@@ -14,6 +14,7 @@ from pyppeteer.launcher import launch
 
 url = 'http://118.25.88.94:3000'
 DOMcookie = 'cookieconsent_status=dismiss; language=zh_CN; welcome-banner-status=dismiss'
+fakePhoto = 'SFRUUC8xLjEgMjAwIE9LCkNvbnRlbnQtVHlwZTogaW1hZ2UvcG5nCgqJUE5HDQoaCgAAAA1JSERSAAAAAQAAAAEBAwAAACXbVsoAAAAGUExURczMzP///9ONFXYAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAKSURBVAiZY2AAAAACAAH0cWSmAAAAAElFTkSuQmCC'
 records = []
 
 # DOMcookie= "csrftoken=J2VJVFPPgGgPi4myBkYtMMoR2P6eWJ3wBl8VoOX0rwR991kQUi1vBgfcXUclrSOh; cookieconsent_status=dismiss; language=zh_CN; continueCode=av8Mgk2ym59pwOlxDdzoH2hrcps5iySzuVcnhMgT3wGKrnVePq1jzJbW7XZQ; token=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MTQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJoamtsQDEyNi5jb20iLCJwYXNzd29yZCI6ImU5ZmQ1ODhiNTg3MjU0M2Q4NmM0NGU3NjMzNTZhNDk1IiwiaXNBZG1pbiI6ZmFsc2UsImxhc3RMb2dpbklwIjoiMC4wLjAuMCIsInByb2ZpbGVJbWFnZSI6ImRlZmF1bHQuc3ZnIiwiY3JlYXRlZEF0IjoiMjAxOS0wNy0wOSAwNTo1NTowOS43NDYgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAxOS0wNy0wOSAwNTo1NTowOS43NDYgKzAwOjAwIn0sImlhdCI6MTU2MjY1MzIwMSwiZXhwIjoxNTYyNjcxMjAxfQ.l63C1L93avxfJcpqCz8cNWs0ukmHAWnGdziT1O7feX0eOB6fXL-WKFFArMzg303E9fU2_xm2O6WC4SIOog9ikGdJBvbrJZBM0b0B23jVmsSy0hGqUGfB3j7TllssiJyWB55mQd8U9sQ9n7euoc8uUgxCua5DjQZodUhIIRxF8b8"
@@ -64,7 +65,7 @@ async def hookJsOnNewPage(page):
     await page.exposeFunction('PyLogReplaceState',lambda url: records.append(dict(Protocal='Replace', Url=url)))
 
 
-    return await page.evaluateOnNewDocument('''()=>{
+    await page.evaluateOnNewDocument('''()=>{
     
         // history.pushState,replaceState可以做到页面内容不动的情况下，更新url
         window.history.pushState = function(a, b, url) { PyLogPushState(url);}
@@ -116,6 +117,13 @@ async def hookJsOnNewPage(page):
         }
     }''')
 
+async def requestHandler(req):
+    if req.resourceType == 'image':
+        await req.respond(dict(status =200, body= fakePhoto))
+#    if req.isNavigationRequest() and not req.frame.parentFrame:
+#        await req.respond(dict(status =200))
+    else:
+        await req.continue_()
 
 async def main():
     browser = await launch(devtools=True) # args=["--start-maximized"]
@@ -128,8 +136,11 @@ async def main():
         await target.setCookie(cookie)
 
     await logOn(target, 'login', 'hjkl@126.com', '543210')
+
     await hookJsOnNewPage(target)
     # emit Js function hooked just now.
+    await target.setRequestInterception(True)
+    target.on('request',lambda request: asyncio.ensure_future(requestHandler(request)))
     await target.reload()
 
     await browser.close()
