@@ -135,6 +135,7 @@ async def InterceptXHR(Page):
 
 async def hookEventListener(Page):
     await Page.evaluateOnNewDocument('''()=>{
+    // 只修改这种事件，面对click等操作是不会起作用的
     _addEventListener = Element.prototype.addEventListener;
     Element.prototype.addEventListener = function() {
         console.log(arguments, this)
