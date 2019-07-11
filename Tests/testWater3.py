@@ -11,9 +11,12 @@
 import asyncio
 import datetime
 from pyppeteer.launcher import launch
+from pyppeteer.network_manager import Request
 
-url = 'http://118.25.88.94:3000'
-DOMcookie = 'cookieconsent_status=dismiss; language=zh_CN; welcome-banner-status=dismiss'
+# url = 'http://118.25.88.94:3000'
+# DOMcookie = 'cookieconsent_status=dismiss; language=zh_CN; welcome-banner-status=dismiss'
+url = 'http://10.10.10.108/dvwa/'
+DOMcookie = "security=low; security_level=0; PHPSESSID=ogc2vmmd8q10mj3m147nnmf3g6; acopendivids=swingset,jotto,phpbb2,redmine; acgroupswithpersist=nada"
 fakePhoto = 'SFRUUC8xLjEgMjAwIE9LCkNvbnRlbnQtVHlwZTogaW1hZ2UvcG5nCgqJUE5HDQoaCgAAAA1JSERSAAAAAQAAAAEBAwAAACXbVsoAAAAGUExURczMzP///9ONFXYAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAKSURBVAiZY2AAAAACAAH0cWSmAAAAAElFTkSuQmCC'
 records = []
 
@@ -30,12 +33,25 @@ def cookieHandler(string):
         result.append(dict(name=k, value=v, expires=expire.timestamp()))
     return result
 
+async def requestHandler(req: Request):
+    global records
+#    if req.resourceType == 'image':
+#        await req.respond(dict(status= 200, body= fakePhoto))
+    if req.isNavigationRequest() and not req.frame.parentFrame:
+        records.append(dict(Protocol='http', Url=req.url))
+        print("We get request-url: "+req.url)
+        await req.respond(dict(status= 204))
+#    else:
+#    await req.continue_()
+
+async def dialogHandler(dialog):
+    await dialog.dismiss()
 
 ##########################################
 #   功能点1：登录/cookie填充（并不万能）
 ##########################################
 
-async def logOn(page, anchor, userId, passWd):
+async def logOn1(page, anchor, userId, passWd):
     #    await asyncio.gather(page.waitForNavigation(),page.goto(url+'/#/'+anchor))
     await page.goto(url + '/#/' + anchor)
     input1 = await page.waitForSelector('input#email')
@@ -48,6 +64,19 @@ async def logOn(page, anchor, userId, passWd):
     await page.waitFor(3000)
     #    await asyncio.gather(page.waitForNavigation(), page.goto(url))
 
+
+async def logOn2(page, anchor, userId, passWd):
+    #    await asyncio.gather(page.waitForNavigation(),page.goto(url+'/#/'+anchor))
+    await page.goto(url + anchor)
+    input1 = await page.waitForSelector('input.loginInput')
+    input2 = await page.waitForSelector('input[name="password"]')
+    button = await page.waitForSelector('input[type="submit"]')
+    await input1.type(userId)
+    await input2.type(passWd)
+    await button.click()
+    # left server some time to finish authorization.
+    await page.waitFor(3000)
+    #    await asyncio.gather(page.waitForNavigation(), page.goto(url))
 
 ##########################################
 #   功能点2：页面初始加载时注入Js
@@ -65,7 +94,7 @@ async def hookJsOnNewPage(page):
     await page.exposeFunction('PyLogReplaceState',lambda url: records.append(dict(Protocal='Replace', Url=url)))
 
 
-    await page.evaluateOnNewDocument('''()=>{
+    await page.evaluate('''()=>{
     
         // history.pushState,replaceState可以做到页面内容不动的情况下，更新url
         window.history.pushState = function(a, b, url) { PyLogPushState(url);}
@@ -97,7 +126,7 @@ async def hookJsOnNewPage(page):
             PyLogFetch(url);
             return oldFetch(url);
         }
-        Object.defineProperty(window,"fetch",{"writable": false, "configurable": false});
+        // Object.defineProperty(window,"fetch",{"writable": false, "configurable": false});
          
         window.close = function() {}
         Object.defineProperty(window,"close",{"writable": false, "configurable": false});
@@ -115,34 +144,81 @@ async def hookJsOnNewPage(page):
             arguments[1] = 0;
             return window.__originalSetInterval.apply(this, arguments);
         }
+        
     }''')
 
-async def requestHandler(req):
-    if req.resourceType == 'image':
-        await req.respond(dict(status =200, body= fakePhoto))
-#    if req.isNavigationRequest() and not req.frame.parentFrame:
-#        await req.respond(dict(status =200))
-    else:
-        await req.continue_()
+
+async def hookClickEvent(page):
+
+    await page.evaluateOnNewDocument('''()=>{
+    
+    // 一个误区便是window.onclick是DOM0事件，而这一内容一般是直接写HTML文档中的；所以在页面加载完成后无法hook
+        function dom0_listener_hook(that, event_name) {
+            console.log(that.tagName);
+            console.log(event_name);
+        }
+        
+        Object.defineProperties(HTMLElement.prototype, {
+            onclick: {set: function(newValue){onclick = newValue;dom0_listener_hook(this, "click");}},
+            onchange: {set: function(newValue){onchange = newValue;dom0_listener_hook(this, "change");}},
+            onblur: {set: function(newValue){onblur = newValue;dom0_listener_hook(this, "blur");}},
+            ondblclick: {set: function(newValue){ondblclick = newValue;dom0_listener_hook(this, "dblclick");}},
+            onfocus: {set: function(newValue){onfocus = newValue;dom0_listener_hook(this, "focus");}}
+        })         
+        
+        let old_event_handle = Element.prototype.addEventListener;
+        Element.prototype.addEventListener = function(event_name, event_func, useCapture) {
+            console.log(arguments, this);
+            old_event_handle.apply(this, arguments);
+        }
+    }''')
 
 async def main():
+
+    global records
     browser = await launch(devtools=True) # args=["--start-maximized"]
     pages = await browser.pages()
     target = pages[0]
+
     await target.goto(url)
 
     cookies = cookieHandler(DOMcookie)
-    for cookie in cookies:
-        await target.setCookie(cookie)
+#    for cookie in cookies:
+#        await target.setCookie(cookie)
 
-    await logOn(target, 'login', 'hjkl@126.com', '543210')
+#    await logOn1(target, 'login', 'hjkl@126.com', '543210')
+    await logOn2(target, 'login', '1337', 'charley')
+#    await hookJsOnNewPage(target)
 
-    await hookJsOnNewPage(target)
+#    await hookClickEvent(target)
+#    await target.evaluateOnNewDocument('window.onbeforeunload = function(event) {event.returnValue = "Anything to stop jump...";}')
+
     # emit Js function hooked just now.
+    # await target.reload()
     await target.setRequestInterception(True)
     target.on('request',lambda request: asyncio.ensure_future(requestHandler(request)))
-    await target.reload()
 
+#    target.on('dialog', lambda dialog: asyncio.ensure_future(dialogHandler(dialog)))
+
+    # click the page sequncilly.
+    """
+    await target.evaluate('''()=>{
+        function sleep(d){for(var t = Date.now();Date.now() - t <= d;);}
+
+        var buttons= document.querySelectorAll('#main_menu_padded > ul:nth-child(2) > li');
+        for (var i =0;i< buttons.length; i++){
+            buttons[i].click();
+        }
+    }''')
+    """
+    buttons = await target.querySelectorAll('#main_menu_padded > ul:nth-child(2) > li')
+    for button in buttons:
+        await button.click()
+    # send a fake request, and turn off the interception
+    await target.reload()
+    await target.setRequestInterception(False)
+
+    await target.waitFor(5000)
     await browser.close()
     return records
 
@@ -151,4 +227,5 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = asyncio.ensure_future(main())
     loop.run_until_complete(task)
+    print("Records looks like: ")
     print(task.result())

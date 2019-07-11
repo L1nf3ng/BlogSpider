@@ -40,6 +40,8 @@
 * [https://chromedevtools.github.io/devtools-protocol/tot]()
 > 关于库本身
 * [https://www.anquanke.com/post/id/103350]()
+> 这篇文章对Chrome浏览器、Pyppeteer库的特性做了总结，替人踩了不少坑
+
 > 有用的经验
 * [http://blog.fatezero.org/2018/03/05/web-scanner-crawler-01/]()
 * [http://blog.fatezero.org/2018/04/09/web-scanner-crawler-02/]()
