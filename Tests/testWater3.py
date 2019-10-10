@@ -10,6 +10,7 @@
 
 import asyncio
 import datetime
+from Tests.Login.LogSeq import logOn1, logOn2
 from pyppeteer.launcher import launch
 from pyppeteer.network_manager import Request
 
@@ -47,36 +48,6 @@ async def requestHandler(req: Request):
 async def dialogHandler(dialog):
     await dialog.dismiss()
 
-##########################################
-#   功能点1：登录/cookie填充（并不万能）
-##########################################
-
-async def logOn1(page, anchor, userId, passWd):
-    #    await asyncio.gather(page.waitForNavigation(),page.goto(url+'/#/'+anchor))
-    await page.goto(url + '/#/' + anchor)
-    input1 = await page.waitForSelector('input#email')
-    input2 = await page.waitForSelector('input#password')
-    button = await page.waitForSelector('button#loginButton')
-    await input1.type(userId)
-    await input2.type(passWd)
-    await button.click()
-    # left server some time to finish authorization.
-    await page.waitFor(3000)
-    #    await asyncio.gather(page.waitForNavigation(), page.goto(url))
-
-
-async def logOn2(page, anchor, userId, passWd):
-    #    await asyncio.gather(page.waitForNavigation(),page.goto(url+'/#/'+anchor))
-    await page.goto(url + anchor)
-    input1 = await page.waitForSelector('input.loginInput')
-    input2 = await page.waitForSelector('input[name="password"]')
-    button = await page.waitForSelector('input[type="submit"]')
-    await input1.type(userId)
-    await input2.type(passWd)
-    await button.click()
-    # left server some time to finish authorization.
-    await page.waitFor(3000)
-    #    await asyncio.gather(page.waitForNavigation(), page.goto(url))
 
 ##########################################
 #   功能点2：页面初始加载时注入Js
@@ -187,7 +158,7 @@ async def main():
 #        await target.setCookie(cookie)
 
 #    await logOn1(target, 'login', 'hjkl@126.com', '543210')
-    await logOn2(target, 'login', '1337', 'charley')
+    await logOn2(target, url+'/login.php', '1337', 'charley')
 #    await hookJsOnNewPage(target)
 
 #    await hookClickEvent(target)
