@@ -47,4 +47,5 @@
 * [http://blog.fatezero.org/2018/04/09/web-scanner-crawler-02/]()
 * [http://blog.fatezero.org/2018/04/15/web-scanner-crawler-03/]()
 
-
+> Addtional Readings
+* [https://security.ele.me/blog-detail.html?id=1]()
