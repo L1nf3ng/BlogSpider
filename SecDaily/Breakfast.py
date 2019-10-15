@@ -188,6 +188,8 @@ class Collector:
                         pass
                     else:
                         print(ext,': post number {}, the expression {} errors!'.format(debug_num, od))
+                        print("Exception Context: \n{}".format(eval('post.tostring()')))
+                        print("The Current expr is: "+ self._target.expr[od])
                         filename = '{}_2_parse.html'.format(str(uuid.uuid1()))
                         with open(filename,'w', encoding= 'utf8') as file:
                             file.write(blog)
