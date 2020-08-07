@@ -42,7 +42,8 @@ class Article:
         self._href= data[1]
         self._author=  data[2]
         self._author_link = data[3]
-        self._type= data[4]
+#        self._type= data[4] if type(data[4])==str else "Unknown"
+        self._type = data[4]
         self._date= self.handle_date(data[5])
         self._origin = data[6]
         if not self._href.startswith('https://') and not self._href.startswith('http://'):
@@ -170,7 +171,7 @@ class Collector:
         if self._target.bad_expr!=None:
             for primitive in self._target.bad_expr:
                 for tag in eval('doc.'+primitive):
-                    super_tag =tag.getparent()
+                    super_tag =tag.getparent().getparent()
                     super_tag.getparent().remove(super_tag)
         # 1st expr determines the articles elements
         posts = eval('doc.'+self._target.expr[0])
@@ -181,13 +182,19 @@ class Collector:
             data = []
             for od in range(1, len(self._target._expr), 1):
                 try:
-                    data.append(eval('post.' + self._target.expr[od]).strip())
+                    result = eval('post.' + self._target.expr[od])
+                    try:
+                        result = str(result)
+                    except:
+                        result = "unkown"
+                    data.append(result.strip())
                 except Exception as ext:
                     # when exception occurs, store the doc into a file to check later
                     if Wrong_Handle == True:
                         pass
                     else:
                         print(ext,': post number {}, the expression {} errors!'.format(debug_num, od))
+                        print("The expression : %s" % 'post.'+ self._target.expr[od])
                         print("Exception Context: \n{}".format(eval('post.tostring()')))
                         print("The Current expr is: "+ self._target.expr[od])
                         filename = '{}_2_parse.html'.format(str(uuid.uuid1()))
@@ -237,14 +244,14 @@ if __name__=='__main__':
                                          "xpath('.//div[@class=\\'tags  hide-in-mobile-device\\']/a/div/span')[0].text",
                                          "xpath('.//div[@class=\\'article-info-left\\']/span/span/i')[0].tail"])
 
-    freebuf = Target('https://www.freebuf.com', ["xpath('//div[@class=\\'news_inner news-list\\']')",
-                                         "xpath('./div[@class=\\'news-info\\']/dl/dt/a[1]/@title')[0]",
-                                         "xpath('./div[@class=\\'news-info\\']/dl/dt/a[1]/@href')[0]",
-                                         "xpath('./div[@class=\\'news-info\\']/dl/dd/span[1]/a')[0].text",
-                                         "xpath('./div[@class=\\'news-info\\']/dl/dd/span[1]/a/@href')[0]",
-                                         "xpath('./div[@class=\\'news-info\\']/div/span/a')[0].text",
-                                         "xpath('./div[@class=\\'news-info\\']/dl/dd/span[3]')[0].text"],
-                                         ["xpath('//div[@class=\\'column-carousel clearfix  recommendNew\\']')",
+    freebuf = Target('https://www.freebuf.com', ["xpath('//div[@class=\\'article-list\\']//div[@class=\\'article-item\\']')", #POST位置
+                                         "xpath('./div/div/a/span')[0].text", # 标题位置
+                                         "xpath('./div/div/a/@href')[0]", # 链接位置
+                                         "xpath('./div[2]/div/div/p/a/span[2]')[0].text", #作者位置
+                                         "xpath('./div[2]/div/div/p/a/@href')[0]", #作者详情
+                                         "xpath('./div')[0]", # 分类位置
+                                         "xpath('./div[2]/div/div/p[2]/span')[0].text"], # 日期位置
+                                         ["xpath('//div[@class=\\'article-list\\']//div[@class=\\'article-item\\']/div/span')", #排除项
                                           "xpath('//div[@class=\\'column-carousel\\']')"])
 
     _4hou = Target('https://www.4hou.com', ["xpath('//div[@id=\\'new-post6\\']')",
@@ -263,7 +270,10 @@ if __name__=='__main__':
     template = env.get_template('report.j2')
 
     # conduct the tasks in  sequence
-    tasks = [aliyun, anquanke, freebuf, _4hou]
+#    tasks = [aliyun, anquanke, freebuf, _4hou]
+    tasks = [freebuf]
+
+
     '''
     for task in tasks:
         cl = Collector(task)
