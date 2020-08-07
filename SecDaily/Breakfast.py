@@ -270,8 +270,8 @@ if __name__=='__main__':
     template = env.get_template('report.j2')
 
     # conduct the tasks in  sequence
-#    tasks = [aliyun, anquanke, freebuf, _4hou]
-    tasks = [freebuf]
+    tasks = [aliyun, anquanke, freebuf, _4hou]
+#    tasks = [freebuf]
 
 
     '''
