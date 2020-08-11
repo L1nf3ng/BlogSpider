@@ -158,7 +158,7 @@ class Collector:
 #                params = {'headers':self._headers, 'proxy':self._proxy}
 #            else:
 #                params = {'headers':self._headers}
-            async with session.get(self._target.url, headers= self._headers) as resp:
+            async with session.get(self._target.url, headers= self._headers, verify_ssl=False) as resp:
                 if resp.status !=200:
                     print('Cannot connect {} just now. Try it later or check the network...'.format(self._target.url))
                     return None
@@ -270,8 +270,8 @@ if __name__=='__main__':
     template = env.get_template('report.j2')
 
     # conduct the tasks in  sequence
-    tasks = [aliyun, anquanke, freebuf, _4hou]
-#    tasks = [freebuf]
+    #    tasks = [aliyun, anquanke, freebuf, _4hou]
+    tasks = [anquanke]
 
 
     '''
