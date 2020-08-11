@@ -249,7 +249,7 @@ if __name__=='__main__':
                                          "xpath('./div/div/a/@href')[0]", # 链接位置
                                          "xpath('./div[2]/div/div/p/a/span[2]')[0].text", #作者位置
                                          "xpath('./div[2]/div/div/p/a/@href')[0]", #作者详情
-                                         "xpath('./div')[0]", # 分类位置
+                                         "xpath('./div[2]/a/p/span')[0].text", # 分类位置
                                          "xpath('./div[2]/div/div/p[2]/span')[0].text"], # 日期位置
                                          ["xpath('//div[@class=\\'article-list\\']//div[@class=\\'article-item\\']/div/span')", #排除项
                                           "xpath('//div[@class=\\'column-carousel\\']')"])
@@ -270,8 +270,8 @@ if __name__=='__main__':
     template = env.get_template('report.j2')
 
     # conduct the tasks in  sequence
-    #    tasks = [aliyun, anquanke, freebuf, _4hou]
-    tasks = [anquanke]
+    tasks = [aliyun, anquanke, freebuf, _4hou]
+    #     tasks = [freebuf]
 
 
     '''
