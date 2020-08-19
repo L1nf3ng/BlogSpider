@@ -1,6 +1,8 @@
 # BlogSpider
 
-写一个类似于scrapy的爬虫框架，目标主要针对博客类文章。
+爬虫源码：[https://github.com/L1nf3ng/BlogSpider/tree/master/SecDaily](https://github.com/L1nf3ng/BlogSpider/tree/master/SecDaily)
+
+**目的**：写一个类似于scrapy的爬虫框架，目标主要针对博客类文章。
 
 ## 结构
 

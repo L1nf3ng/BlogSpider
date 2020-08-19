@@ -100,7 +100,7 @@ class Article:
 # Target中的表达式数组分别代表（post位置，标题位置、链接位置、作者位置、分类位置、日期位置）
 # Target中的坏表达式列表代表要删除的节点，因为这些某些节点的存在该绕了正常的解析过程
 # 所以先找到它们，并删除掉
-# TODO: ！！！！注意，删除的是找到节点的父节点！！！！
+# ！！！！注意，删除的是找到节点的父节点 ！！！！
 class Target:
     def __init__(self, url, good_xpath, bad_xpath=None):
         self._url = url
@@ -181,13 +181,23 @@ class Collector:
         for post in posts:
             data = []
             for od in range(1, len(self._target._expr), 1):
+                # 对od语句的解析时很核心的
                 try:
-                    result = eval('post.' + self._target.expr[od])
-                    try:
-                        result = str(result)
-                    except:
-                        result = "unkown"
-                    data.append(result.strip())
+                    if self._target.expr[od]=="":
+                        data.append("unkown")
+                    elif "regex" in self._target.expr[od]:
+                        xpathExpression, reExpression = self._target.expr[od].split(",")
+                        result = eval('post.' + xpathExpression)
+                        pattern = reExpression.split(":")[1].strip().strip("'")
+                        m = re.search(pattern, result, re.S)
+                        data.append(m.group(2))
+                    else:
+                        result = eval('post.' + self._target.expr[od])
+                        try:
+                            result = str(result)
+                        except:
+                            result = "unkown"
+                        data.append(result.strip())
                 except Exception as ext:
                     # when exception occurs, store the doc into a file to check later
                     if Wrong_Handle == True:
@@ -224,10 +234,19 @@ if __name__=='__main__':
     #           1-->    标题位置
     #           2-->    链接位置
     #           3-->    作者位置
-    #           4-->    作者信息位置
+    #           4-->    作者信息链接
     #           5-->    分类位置
     #           6-->    日期位置
     #               干扰项规则，用来删除干扰节点，因为可能不止一项，
+    seebug = Target("https://paper.seebug.org",[ "xpath('//article')",
+                                                "xpath('./header/h5/a')[0].text",
+                                                "xpath('./header/h5/a/@href')[0]",
+                                                "xpath('./section')[0].text, regex: '(作者|译者)：([^\n]+)\n'",
+                                                "",
+                                                "xpath('./header/section[1]/a')[0].text",         # 分类位置
+                                                "xpath('./header/section[1]/span/time[@class=\\'fulldate\\']')[0].text"])        # 日期位置
+
+
     aliyun = Target('https://xz.aliyun.com', ["xpath('//td')",
                                          "xpath('./p[1]/a[@class=\\'topic-title\\']')[0].text",
                                          "xpath('./p[1]/a[@class=\\'topic-title\\']/@href')[0]",
@@ -270,8 +289,8 @@ if __name__=='__main__':
     template = env.get_template('report.j2')
 
     # conduct the tasks in  sequence
-    tasks = [aliyun, anquanke, freebuf, _4hou]
-    #     tasks = [freebuf]
+    tasks = [seebug, aliyun, anquanke, freebuf, _4hou]
+    # tasks = [seebug]
 
 
     '''
