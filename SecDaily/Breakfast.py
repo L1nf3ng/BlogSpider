@@ -192,8 +192,8 @@ class Collector:
                         m = re.search(pattern, result, re.S)
                         data.append(m.group(2))
                     else:
-                        result = eval('post.' + self._target.expr[od])
                         try:
+                            result = eval('post.' + self._target.expr[od])
                             result = str(result)
                         except:
                             result = "unkown"
