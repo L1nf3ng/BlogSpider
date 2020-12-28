@@ -1,5 +1,7 @@
 # BlogSpider
 
+**重要：本项目近期搬家（新名字[SecurityDaily](https://github.com/L1nf3ng/SecurityDaily)，搬家原因：更好的代码风格，更清晰的设计目标，更强大的功能。）**
+
 爬虫源码：[https://github.com/L1nf3ng/BlogSpider/tree/master/SecDaily](https://github.com/L1nf3ng/BlogSpider/tree/master/SecDaily)
 
 **目的**：写一个类似于scrapy的爬虫框架，目标主要针对博客类文章。
